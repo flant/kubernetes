@@ -59,8 +59,9 @@ func GetStaticPodSpecs(cfg *kubeadmapi.ClusterConfiguration, endpoint *kubeadmap
 			VolumeMounts:    staticpodutil.VolumeMountMapToSlice(mounts.GetVolumeMounts(kubeadmconstants.KubeAPIServer)),
 			LivenessProbe:   staticpodutil.LivenessProbe(staticpodutil.GetAPIServerProbeAddress(endpoint), "/healthz", int(endpoint.BindPort), v1.URISchemeHTTPS),
 			Resources:       staticpodutil.ComponentResources("250m"),
-			Env:             getProxyEnvVars(),
-		}, mounts.GetVolumes(kubeadmconstants.KubeAPIServer)),
+			Env:             kubeadmutil.GetProxyEnvVars(),
+		}, mounts.GetVolumes(kubeadmconstants.KubeAPIServer),
+			map[string]string{kubeadmconstants.KubeAPIServerAdvertiseAddressEndpointAnnotationKey: endpoint.String()}),
 		kubeadmconstants.KubeControllerManager: staticpodutil.ComponentPod(v1.Container{
 			Name:            kubeadmconstants.KubeControllerManager,
 			Image:           images.GetKubernetesImage(kubeadmconstants.KubeControllerManager, cfg),
@@ -69,8 +70,8 @@ func GetStaticPodSpecs(cfg *kubeadmapi.ClusterConfiguration, endpoint *kubeadmap
 			VolumeMounts:    staticpodutil.VolumeMountMapToSlice(mounts.GetVolumeMounts(kubeadmconstants.KubeControllerManager)),
 			LivenessProbe:   staticpodutil.LivenessProbe(staticpodutil.GetControllerManagerProbeAddress(cfg), "/healthz", kubeadmconstants.InsecureKubeControllerManagerPort, v1.URISchemeHTTP),
 			Resources:       staticpodutil.ComponentResources("200m"),
-			Env:             getProxyEnvVars(),
-		}, mounts.GetVolumes(kubeadmconstants.KubeControllerManager)),
+			Env:             kubeadmutil.GetProxyEnvVars(),
+		}, mounts.GetVolumes(kubeadmconstants.KubeControllerManager), nil),
 		kubeadmconstants.KubeScheduler: staticpodutil.ComponentPod(v1.Container{
 			Name:            kubeadmconstants.KubeScheduler,
 			Image:           images.GetKubernetesImage(kubeadmconstants.KubeScheduler, cfg),
@@ -79,8 +80,8 @@ func GetStaticPodSpecs(cfg *kubeadmapi.ClusterConfiguration, endpoint *kubeadmap
 			VolumeMounts:    staticpodutil.VolumeMountMapToSlice(mounts.GetVolumeMounts(kubeadmconstants.KubeScheduler)),
 			LivenessProbe:   staticpodutil.LivenessProbe(staticpodutil.GetSchedulerProbeAddress(cfg), "/healthz", kubeadmconstants.InsecureSchedulerPort, v1.URISchemeHTTP),
 			Resources:       staticpodutil.ComponentResources("100m"),
-			Env:             getProxyEnvVars(),
-		}, mounts.GetVolumes(kubeadmconstants.KubeScheduler)),
+			Env:             kubeadmutil.GetProxyEnvVars(),
+		}, mounts.GetVolumes(kubeadmconstants.KubeScheduler), nil),
 	}
 	return staticPodSpecs
 }

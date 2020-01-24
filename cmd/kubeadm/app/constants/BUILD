@@ -19,6 +19,7 @@ go_library(
         "//pkg/registry/core/service/ipallocator:go_default_library",
         "//staging/src/k8s.io/api/core/v1:go_default_library",
         "//staging/src/k8s.io/apimachinery/pkg/util/version:go_default_library",
+        "//staging/src/k8s.io/apimachinery/pkg/util/wait:go_default_library",
         "//staging/src/k8s.io/cluster-bootstrap/token/api:go_default_library",
         "//vendor/github.com/pkg/errors:go_default_library",
     ],
