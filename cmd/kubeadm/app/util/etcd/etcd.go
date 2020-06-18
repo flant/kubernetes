@@ -178,7 +178,6 @@ func getRawEtcdEndpointsFromPodAnnotation(client clientset.Interface, backoff wa
 func getRawEtcdEndpointsFromPodAnnotationWithoutRetry(client clientset.Interface) ([]string, int, error) {
 	klog.V(3).Infof("retrieving etcd endpoints from %q annotation in etcd Pods", constants.EtcdAdvertiseClientUrlsAnnotationKey)
 	podList, err := client.CoreV1().Pods(metav1.NamespaceSystem).List(
-		context.TODO(),
 		metav1.ListOptions{
 			LabelSelector: fmt.Sprintf("component=%s,tier=%s", constants.Etcd, constants.ControlPlaneTier),
 		},

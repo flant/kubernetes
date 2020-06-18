@@ -177,7 +177,7 @@ func GetEtcdPodSpec(cfg *kubeadmapi.ClusterConfiguration, endpoint *kubeadmapi.A
 		certsVolumeName: staticpodutil.NewVolume(certsVolumeName, cfg.CertificatesDir+"/etcd", &pathType),
 	}
 	// probeHostname returns the correct localhost IP address family based on the endpoint AdvertiseAddress
-	probeHostname, probePort, probeScheme := staticpodutil.GetEtcdProbeEndpoint(&cfg.Etcd, utilsnet.IsIPv6String(endpoint.AdvertiseAddress))
+	probeHostname, probePort, probeScheme := staticpodutil.GetEtcdProbeEndpoint(&cfg.Etcd)
 	return staticpodutil.ComponentPod(
 		v1.Container{
 			Name:            kubeadmconstants.Etcd,
