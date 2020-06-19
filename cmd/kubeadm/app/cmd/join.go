@@ -390,6 +390,11 @@ func newJoinData(cmd *cobra.Command, args []string, opt *joinOptions, out io.Wri
 		return nil, err
 	}
 
+	initCfg, err := configutil.LoadInitConfigurationFromFile(opt.cfgPath)
+	if err != nil {
+		return nil, err
+	}
+
 	ignorePreflightErrorsSet, err := validation.ValidateIgnorePreflightErrors(opt.ignorePreflightErrors, cfg.NodeRegistration.IgnorePreflightErrors)
 	if err != nil {
 		return nil, err
@@ -413,6 +418,7 @@ func newJoinData(cmd *cobra.Command, args []string, opt *joinOptions, out io.Wri
 
 	return &joinData{
 		cfg:                   cfg,
+		initCfg:               initCfg,
 		tlsBootstrapCfg:       tlsBootstrapCfg,
 		ignorePreflightErrors: ignorePreflightErrorsSet,
 		outputWriter:          out,
