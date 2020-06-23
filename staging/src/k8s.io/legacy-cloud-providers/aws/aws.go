@@ -1584,6 +1584,10 @@ func (c *Cloud) NodeAddressesByProviderID(ctx context.Context, providerID string
 // InstanceExistsByProviderID returns true if the instance with the given provider id still exists.
 // If false is returned with no error, the instance will be immediately deleted by the cloud controller manager.
 func (c *Cloud) InstanceExistsByProviderID(ctx context.Context, providerID string) (bool, error) {
+	if providerID == "static://" {
+		return true, nil
+	}
+
 	instanceID, err := KubernetesInstanceID(providerID).MapToAWSInstanceID()
 	if err != nil {
 		return false, err
