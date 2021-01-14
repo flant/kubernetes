@@ -64,6 +64,7 @@ func startDisruptionController(ctx ControllerContext) (http.Handler, bool, error
 		ctx.InformerFactory.Apps().V1().ReplicaSets(),
 		ctx.InformerFactory.Apps().V1().Deployments(),
 		ctx.InformerFactory.Apps().V1().StatefulSets(),
+		ctx.InformerFactory.Apps().V1().DaemonSets(),
 		client,
 		ctx.RESTMapper,
 		scaleClient,

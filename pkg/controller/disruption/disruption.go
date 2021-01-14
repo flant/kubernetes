@@ -47,6 +47,7 @@ import (
 	"k8s.io/client-go/tools/cache"
 	"k8s.io/client-go/tools/record"
 	"k8s.io/client-go/util/workqueue"
+
 	podutil "k8s.io/kubernetes/pkg/api/v1/pod"
 	"k8s.io/kubernetes/pkg/controller"
 
@@ -90,6 +91,9 @@ type DisruptionController struct {
 	ssLister       appsv1listers.StatefulSetLister
 	ssListerSynced cache.InformerSynced
 
+	dsLister       appsv1listers.DaemonSetLister
+	dsListerSynced cache.InformerSynced
+
 	// PodDisruptionBudget keys that need to be synced.
 	queue        workqueue.RateLimitingInterface
 	recheckQueue workqueue.DelayingInterface
@@ -118,6 +122,7 @@ func NewDisruptionController(
 	rsInformer appsv1informers.ReplicaSetInformer,
 	dInformer appsv1informers.DeploymentInformer,
 	ssInformer appsv1informers.StatefulSetInformer,
+	dsInformer appsv1informers.DaemonSetInformer,
 	kubeClient clientset.Interface,
 	restMapper apimeta.RESTMapper,
 	scaleNamespacer scaleclient.ScalesGetter,
@@ -162,6 +167,9 @@ func NewDisruptionController(
 	dc.ssLister = ssInformer.Lister()
 	dc.ssListerSynced = ssInformer.Informer().HasSynced
 
+	dc.dsLister = dsInformer.Lister()
+	dc.dsListerSynced = dsInformer.Informer().HasSynced
+
 	dc.mapper = restMapper
 	dc.scaleNamespacer = scaleNamespacer
 
@@ -174,7 +182,7 @@ func NewDisruptionController(
 // resources directly and only fall back to the scale subresource when needed.
 func (dc *DisruptionController) finders() []podControllerFinder {
 	return []podControllerFinder{dc.getPodReplicationController, dc.getPodDeployment, dc.getPodReplicaSet,
-		dc.getPodStatefulSet, dc.getScaleController}
+		dc.getPodStatefulSet, dc.getPodDaemonSet, dc.getScaleController}
 }
 
 var (
@@ -182,6 +190,7 @@ var (
 	controllerKindSS  = apps.SchemeGroupVersion.WithKind("StatefulSet")
 	controllerKindRC  = v1.SchemeGroupVersion.WithKind("ReplicationController")
 	controllerKindDep = v1beta1.SchemeGroupVersion.WithKind("Deployment")
+	controllerKindDS  = apps.SchemeGroupVersion.WithKind("DaemonSet")
 )
 
 // getPodReplicaSet finds a replicaset which has no matching deployments.
@@ -258,6 +267,24 @@ func (dc *DisruptionController) getPodDeployment(controllerRef *metav1.OwnerRefe
 	return &controllerAndScale{deployment.UID, *(deployment.Spec.Replicas)}, nil
 }
 
+// getPodDaemonSet returns the daemonset referenced by the provided controllerRef.
+func (dc *DisruptionController) getPodDaemonSet(controllerRef *metav1.OwnerReference, namespace string) (*controllerAndScale, error) {
+	ok, err := verifyGroupKind(controllerRef, controllerKindDS.Kind, []string{"apps"})
+	if !ok || err != nil {
+		return nil, err
+	}
+	ds, err := dc.dsLister.DaemonSets(namespace).Get(controllerRef.Name)
+	if err != nil {
+		// The only possible error is NotFound, which is ok here.
+		return nil, nil
+	}
+	if ds.UID != controllerRef.UID {
+		return nil, nil
+	}
+
+	return &controllerAndScale{ds.UID, ds.Status.DesiredNumberScheduled}, nil
+}
+
 func (dc *DisruptionController) getPodReplicationController(controllerRef *metav1.OwnerReference, namespace string) (*controllerAndScale, error) {
 	ok, err := verifyGroupKind(controllerRef, controllerKindRC.Kind, []string{""})
 	if !ok || err != nil {
@@ -330,7 +357,7 @@ func (dc *DisruptionController) Run(stopCh <-chan struct{}) {
 	klog.Infof("Starting disruption controller")
 	defer klog.Infof("Shutting down disruption controller")
 
-	if !cache.WaitForNamedCacheSync("disruption", stopCh, dc.podListerSynced, dc.pdbListerSynced, dc.rcListerSynced, dc.rsListerSynced, dc.dListerSynced, dc.ssListerSynced) {
+	if !cache.WaitForNamedCacheSync("disruption", stopCh, dc.podListerSynced, dc.pdbListerSynced, dc.rcListerSynced, dc.rsListerSynced, dc.dListerSynced, dc.ssListerSynced, dc.dsListerSynced) {
 		return
 	}
 
